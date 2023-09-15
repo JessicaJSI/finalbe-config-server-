@@ -1,0 +1,75 @@
+server:
+  port: ${PORT:${SERVER_PORT:0}}
+
+spring:
+  application:
+    name: catalog-service
+  data:
+    mongodb:
+      database: catalog-db
+      port: 27017
+  rabbitmq:
+    username: guest
+    password: guest
+    host: localhost
+    port: 5672
+
+queue:
+  movie:
+    name: MovieQueue
+  serie:
+    name: SerieQueue
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-register: true
+    registry-fetch-interval-seconds: 5
+    healthcheck:
+      enabled: true
+    service-url:
+      default-zone: http://localhost:8761/eureka
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 5
+    lease-expiration-duration-in-seconds: 10
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  health:
+    circuitbreakers:
+      enabled: true
+  endpoint:
+    health:
+      show-details: always
+
+  resilience4j:
+    circuitbreaker:
+      instances:
+        series:  #Este nombre debe coincidir con el que se encuentra en el programa en "name"
+          slidingWindowType: COUNT_BASED  #Hay dos tipos por ventanas de tiempo o de eventos
+          slidingWindowSize: 5
+          failureRateThreshold: 50
+          waitDurationInOpenState: 15000
+          permittedNumberOfCallsInHalfOpenState: 3
+          registerHealthIndicator: true
+          allowHealthIndicatorToFail: false
+          automaticTransitionFromOpenToHalfOpenEnabled: true
+
+    retry:
+      instances:
+        movies:
+          waitDuration: 1000
+          maxAttempts: 3
+          retryExceptions:
+            - feign.FeignException$InternalServerError
+            - feign.FeignException$ServiceUnavailable
